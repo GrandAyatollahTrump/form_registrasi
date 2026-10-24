@@ -25,6 +25,27 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _isLoading = false;
   bool _agreeTerms = false;
   bool _showTermsError = false;
+  int _passwordStrength = 0;
+
+  int _calculateStrength(String value) {
+    if (value.isEmpty) return 0;
+    if (value.length < 8) return 1;
+
+    final hasUpper = value.contains(RegExp(r'[A-Z]'));
+    final hasLower = value.contains(RegExp(r'[a-z]'));
+    final hasDigit = value.contains(RegExp(r'[0-9]'));
+    final hasSymbol = value.contains(RegExp(r'[^A-Za-z0-9]'));
+
+    if (hasUpper && hasLower && hasDigit && hasSymbol) return 3;
+    if ((hasUpper || hasLower) && hasDigit) return 2;
+    return 1;
+  }
+
+  String get _strengthLabel =>
+      const ['', 'Lemah', 'Sedang', 'Kuat'][_passwordStrength];
+
+  Color get _strengthColor =>
+      [Colors.grey, Colors.red, Colors.orange, Colors.green][_passwordStrength];
 
   @override
   void dispose() {
@@ -182,6 +203,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       _selectedGender = null;
       _agreeTerms = false;
       _showTermsError = false;
+      _passwordStrength = 0;
     });
   }
 
@@ -323,8 +345,36 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       _obscurePassword = !_obscurePassword;
                     });
                   },
+                  onChanged: (value) {
+                    final strength = _calculateStrength(value);
+                    if (strength != _passwordStrength) {
+                      setState(() {
+                        _passwordStrength = strength;
+                      });
+                    }
+                  },
                   validator: _validatePassword,
                 ),
+                if (_passwordStrength > 0)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      LinearProgressIndicator(
+                        value: _passwordStrength / 3,
+                        color: _strengthColor,
+                        backgroundColor: Colors.grey[300],
+                        minHeight: 6,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Kekuatan password: $_strengthLabel',
+                        style: TextStyle(
+                          color: _strengthColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
 
                 // Field Konfirmasi Password
                 _buildPasswordField(
@@ -422,6 +472,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     IconData prefixIcon = Icons.lock,
     required bool obscureText,
     required VoidCallback onToggleVisibility,
+    void Function(String)? onChanged,
     required String? Function(String?) validator,
   }) {
     return Padding(
@@ -443,6 +494,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           fillColor: Colors.grey[50],
         ),
         obscureText: obscureText,
+        onChanged: onChanged,
         validator: validator,
       ),
     );
