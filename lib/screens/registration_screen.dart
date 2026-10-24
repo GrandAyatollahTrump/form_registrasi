@@ -13,6 +13,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -25,6 +26,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -52,6 +54,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
     return null;
   }
+
+  String? _validatePhone(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'Nomor telepon tidak boleh kosong';
+  }
+  if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+    return 'Nomor telepon hanya boleh berisi angka';
+  }
+  if (value.trim().length < 10 || value.trim().length > 13) {
+    return 'Nomor telepon harus 10–13 digit';
+  }
+  return null;
+}
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
@@ -187,6 +202,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   prefixIcon: Icons.email,
                   keyboardType: TextInputType.emailAddress,
                   validator: _validateEmail,
+                ),
+
+                CustomTextField(
+                 controller: _phoneController,
+                 label: 'Nomor Telepon',
+                 hint: 'Masukkan nomor telepon Anda',
+                 prefixIcon: Icons.phone,
+                 keyboardType: TextInputType.phone,
+                 validator: _validatePhone,
                 ),
 
                 // Field Password
