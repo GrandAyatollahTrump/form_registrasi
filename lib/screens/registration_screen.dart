@@ -12,6 +12,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   // Global Key & Controllers
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _birthDateController = TextEditingController();
+  DateTime? _selectedDate;
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -21,10 +23,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _agreeTerms = false;
+  bool _showTermsError = false;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _birthDateController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
@@ -54,6 +59,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
     return null;
   }
+
+  String? _selectedGender;
+   final List<String> _genders = ['Laki-laki', 'Perempuan'];
 
   String? _validatePhone(String? value) {
   if (value == null || value.trim().isEmpty) {
@@ -97,13 +105,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   // --- FORM HANDLERS ---
 
   void _submitForm() {
-    if (_formKey.currentState!.validate()) {
+    final isFormValid = _formKey.currentState!.validate();
+    if (!_agreeTerms) {
+      setState(() {
+        _showTermsError = true;
+      });
+    }
+
+    if (isFormValid && _agreeTerms) {
       setState(() {
         _isLoading = true;
       });
 
       // Simulasi proses registrasi
       Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+
         setState(() {
           _isLoading = false;
         });
@@ -132,12 +149,40 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
   }
 
+  Future<void> _pickBirthDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime(2005),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked == null || !mounted) return;
+
+    setState(() {
+      _selectedDate = picked;
+      _birthDateController.text =
+          '${picked.day.toString().padLeft(2, '0')}/'
+          '${picked.month.toString().padLeft(2, '0')}/'
+          '${picked.year}';
+    });
+  }
+
   void _resetForm() {
-    _formKey.currentState!.reset();
+    _formKey.currentState?.reset();
     _nameController.clear();
+    _birthDateController.clear();
+    _selectedDate = null;
     _emailController.clear();
+    _phoneController.clear();
     _passwordController.clear();
     _confirmPasswordController.clear();
+
+    setState(() {
+      _selectedGender = null;
+      _agreeTerms = false;
+      _showTermsError = false;
+    });
   }
 
   // --- UI BUILD METHOD ---
@@ -203,6 +248,60 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   keyboardType: TextInputType.emailAddress,
                   validator: _validateEmail,
                 ),
+                
+                //field tanggal lahir
+                Padding(
+                   padding: const EdgeInsets.symmetric(vertical: 8.0),
+                   child: TextFormField(
+                    controller: _birthDateController,
+                    readOnly: true,
+                    onTap: _pickBirthDate,
+                    decoration: InputDecoration(
+                       labelText: 'Tanggal Lahir',
+                       hintText: 'Pilih tanggal lahir',
+                       prefixIcon: const Icon(Icons.cake),
+                       suffixIcon: const Icon(Icons.calendar_today),
+                       border: const OutlineInputBorder(),
+                       filled: true,
+                       fillColor: Colors.grey[50],
+                    ),
+                    validator: (value) {
+                    if (value == null || value.isEmpty) {
+                    return 'Tanggal lahir tidak boleh kosong';
+                    }
+                    return null;
+                      },
+                    ),
+                 ),
+                
+                Padding(
+                   padding: const EdgeInsets.symmetric(vertical: 8.0),
+                   child: DropdownButtonFormField<String>(
+                   initialValue: _selectedGender,
+                   decoration: InputDecoration(
+                     labelText: 'Jenis Kelamin',
+                     prefixIcon: const Icon(Icons.wc),
+                     border: const OutlineInputBorder(),
+                     filled: true,
+                     fillColor: Colors.grey[50],
+                ),
+                hint: const Text('Pilih jenis kelamin'),
+                items: _genders
+                 .map((g) => DropdownMenuItem<String>(value: g, child: Text(g)))
+                 .toList(),
+                onChanged: (value) {
+                setState(() {
+                _selectedGender = value;
+                });
+               },
+               validator: (value) {
+               if (value == null) {
+               return 'Jenis kelamin wajib dipilih';
+                }
+               return null;
+              },
+            ),
+          ),
 
                 CustomTextField(
                  controller: _phoneController,
@@ -276,6 +375,35 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ),
                   child: const Text('Reset'),
                 ),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CheckboxListTile(
+                      value: _agreeTerms,
+                      onChanged: (value) {
+                        setState(() {
+                          _agreeTerms = value ?? false;
+                          if (_agreeTerms) _showTermsError = false;
+                        });
+                      },
+                      title: const Text(
+                        'Saya setuju dengan Syarat & Ketentuan',
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    if (_showTermsError)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 12),
+                        child: Text(
+                          'Anda harus menyetujui Syarat & Ketentuan',
+                          style: TextStyle(color: Colors.red, fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
+
                 const SizedBox(height: 16),
               ],
             ),
